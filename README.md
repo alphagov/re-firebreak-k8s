@@ -4,15 +4,21 @@ These notes document the firebreak project to learn some kubernetes
 
 
 # Requirements
-Install kops
 
-brew install kops
+```brew install kops```
+
+```
+brew cask install aws-vault
+aws-vault add home [will prompt for detals]
+```
 
 
 # Refs
-https://medium.com/containermind/how-to-create-a-kubernetes-cluster-on-aws-in-few-minutes-89dda10354f4
+*https://medium.com/containermind/how-to-create-a-kubernetes-cluster-on-aws-in-few-minutes-89dda10354f4
 
-https://kubernetes.io/docs/user-journeys/users/application-developer/foundational/#section-1
+*https://kubernetes.io/docs/user-journeys/users/application-developer/foundational/#section-1
+
+*https://github.com/99designs/aws-vault
 
 
 # Team
@@ -51,3 +57,5 @@ Build/Steal & Deploy a hello world app to the ‘thing’
 Stage 3
 
 Deploy a CI/CD tool to the ‘thing’
+
+
