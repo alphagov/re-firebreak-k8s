@@ -40,10 +40,10 @@ Requirements are:
 
 2. [kops](https://github.com/kubernetes/kops) to deploy the k8s cluster on AWS infrastructure.
 
-  Example to install `kops` on mac os using `brew`:
-  ```
-  brew install kops
-  ```
+    Example to install `kops` on mac os using `brew`:
+    ```
+    brew install kops
+    ```
 
 # Project Details
 
