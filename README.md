@@ -44,11 +44,6 @@ Requirements are:
   ```
   brew install kops
   ```
-3. optional: [aws-vault](https://github.com/99designs/aws-vault) to manage the AWS credentials
-  ```
-  brew cask install aws-vault
-  aws-vault add home [will prompt for detals]
-  ```
 
 # Project Details
 
