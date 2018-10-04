@@ -49,11 +49,7 @@ Requirements are:
 
 ## Stage 1
 
-Build a K8s cluster
-
-Ref:
-
-1. [using kops to k8s on k8s](https://medium.com/containermind/how-to-create-a-kubernetes-cluster-on-aws-in-few-minutes-89dda10354f4)
+Build a K8s cluster by following the steps [here](kops_deploy_k8s_cluster.md)
 
 ## Stage 2
 
@@ -62,7 +58,6 @@ Build & Deploy a hello world app to the ‘thing’
 ## Stage 3
 
 Deploy a CI/CD tool to the ‘thing’
-
 
 # Refs
 *https://medium.com/containermind/how-to-create-a-kubernetes-cluster-on-aws-in-few-minutes-89dda10354f4
