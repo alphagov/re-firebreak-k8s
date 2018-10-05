@@ -51,9 +51,10 @@ The following prerequisites are required:
         ```  
 
   7. Accessing the deployed application is done by:
-    1. getting the URL of the application:
+
+     1. getting the URL of the application:
         ```
         kubectl get ingress bulletin-board-ingress
         ```
 
-    2. browse to the URL in a browser, you may encounter some certificate error due to the deployed application not using a TLS certificate from a recognised Certificate Authority.
+     2. browse to the URL in a browser, you may encounter some certificate error due to the deployed application not using a TLS certificate from a recognised Certificate Authority.
