@@ -39,7 +39,6 @@ The following prerequisites are required:
      ```
 
   6. Getting the `KUBE_TOKEN` value is done by:
-
     1. retrieving the token name:
         ```
         kubectl describe sa default --namespace kube-system
@@ -51,7 +50,6 @@ The following prerequisites are required:
         ```  
 
   7. Accessing the deployed application is done by:
-
     1. getting the URL of the application:
         ```
         kubectl get ingress bulletin-board-ingress
