@@ -24,7 +24,7 @@ The following prerequisites are required:
       ```
       kubectl get ingress --namespace gocd gocd-server
       ```
-  and using the URL link
+     and using the URL link
 
   4. `build_and_publish_image` pipeline, the bash command text box should have:
      ```
