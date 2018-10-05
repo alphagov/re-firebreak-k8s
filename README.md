@@ -61,12 +61,12 @@ Build & Deploy a hello world app to the ‘thing’
 
 ## Stage 3
 
-Deploy a CI/CD tool to the ‘thing’
+Deploy a CI/CD tool to the k8s cluster by using the instructions [here](gocd_deploy_errata.md)
 
 
-# Refs
-*https://medium.com/containermind/how-to-create-a-kubernetes-cluster-on-aws-in-few-minutes-89dda10354f4
+# References
+[1] https://medium.com/containermind/how-to-create-a-kubernetes-cluster-on-aws-in-few-minutes-89dda10354f4
 
-*https://kubernetes.io/docs/user-journeys/users/application-developer/foundational/#section-1
+[2] https://kubernetes.io/docs/user-journeys/users/application-developer/foundational/#section-1
 
-*https://github.com/99designs/aws-vault
+[3] https://github.com/99designs/aws-vault
