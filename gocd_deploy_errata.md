@@ -41,20 +41,20 @@ The following prerequisites are required:
   6. Getting the `KUBE_TOKEN` value is done by:
 
     1. retrieving the token name:
-       ```
-       kubectl describe sa default --namespace kube-system
-       ```
+        ```
+        kubectl describe sa default --namespace kube-system
+        ```
 
     2. retrieving the token value based on the token name:
-       ```
-       kubectl describe secrets <token_name> --namespace kube-system
-       ```  
+        ```
+        kubectl describe secrets <token_name> --namespace kube-system
+        ```  
 
   7. Accessing the deployed application is done by:
 
     1. getting the URL of the application:
-       ```
-       kubectl get ingress bulletin-board-ingress
-       ```
+        ```
+        kubectl get ingress bulletin-board-ingress
+        ```
 
     2. browse to the URL in a browser, you may encounter some certificate error due to the deployed application not using a TLS certificate from a recognised Certificate Authority.
