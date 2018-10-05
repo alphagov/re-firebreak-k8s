@@ -40,12 +40,12 @@ The following prerequisites are required:
 
   6. Getting the `KUBE_TOKEN` value is done by:
 
-    1. retrieving the token name:
+     1. retrieving the token name:
         ```
         kubectl describe sa default --namespace kube-system
         ```
 
-    2. retrieving the token value based on the token name:
+     2. retrieving the token value based on the token name:
         ```
         kubectl describe secrets <token_name> --namespace kube-system
         ```  
