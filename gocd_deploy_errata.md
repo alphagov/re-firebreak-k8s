@@ -39,6 +39,7 @@ The following prerequisites are required:
      ```
 
   6. Getting the `KUBE_TOKEN` value is done by:
+
     1. retrieving the token name:
         ```
         kubectl describe sa default --namespace kube-system
