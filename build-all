@@ -1,0 +1,164 @@
+#!/bin/sh
+
+# Refs
+# https://medium.com/containermind/how-to-create-a-kubernetes-cluster-on-aws-in-few-minutes-89dda10354f4
+
+
+# Script particular parameters like debug
+DEBUG=0
+
+
+# Is /usr/local/bin/aws-vault installed (and configured)?
+  # if not installed, then brew cask install aws-vault, inform user to add credentials, stop here
+
+# Is kops installed (/usr/local/bin/kops)
+  # if not installed, then brew install kops
+
+# Is kubectl installed (/usr/local/bin/kubectl)
+  # if not installed, then brew install kubernetes-cli
+
+# Get person/project name, get region, maybe case stmt near end
+# e.g. david.pye, eu-west-1, 
+
+# build Cluster name (name.surname.k8s.local)
+# build s3 name (first-surname-kops-state-store)
+# Does bucket exist? If not, create bucket
+
+
+# Set params (AWS & KOPS)
+
+  # AWS
+  export AWS_ACCESS_KEY_ID=AKIAJNDFRZI6VBVKXZTQ
+  export AWS_SECRET_ACCESS_KEY=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
+  export AWS_DEFAULT_REGION="eu-west-1"
+#  export AWS_SDK_LOAD_CONFIG=1
+
+  # S3 bucket name
+  export BUCKET_NAME=david-pye-2-kops-state-store
+
+  # KOPS
+  export KOPS_CLUSTER_NAME=david.pye.2.k8s.local
+  export KOPS_STATE_STORE=s3://${BUCKET_NAME}
+  export KOPS_NODE_COUNT=2
+  export KOPS_NODE_SIZE=t2.medium
+  export KOPS_AWS_S3_REGION="eu-west-1a"
+  
+  # Debug - print vars
+  if [ "$DEBUG" -eq "1" ]; then
+    echo "AWS_DEFAULT_REGION = ${AWS_DEFAULT_REGION}"
+    echo "AWS_ACCESS_KEY_ID = ${AWS_ACCESS_KEY_ID}"
+    echo "AWS_SECRET_ACCESS_KEY = ${AWS_SECRET_ACCESS_KEY}"
+    echo "AWS_SDK_LOAD_CONFIG=1 = ${AWS_SDK_LOAD_CONFIG}"
+    echo "NAME = ${NAME}"
+    echo "BUCKET_NAME = ${BUCKET_NAME}"
+    echo "KOPS_AWS_S3_REGION = ${KOPS_AWS_S3_REGION}"
+    echo "KOPS_CLUSTER_NAME = ${KOPS_CLUSTER_NAME}"
+    echo "KOPS_STATE_STORE = ${KOPS_STATE_STORE}"
+    echo "KOPS_NODE_COUNT = ${KOPS_NODE_COUNT}"
+    echo "KOPS_NODE_SIZE = ${KOPS_NODE_SIZE}"
+  fi
+
+
+# Is this first time build, or are we building from yaml file?
+
+# 1st time build
+
+# AWS s3 bucket
+
+  if [ "$DEBUG" -eq "1" ]; then
+    set -x
+  else
+    set +x
+  fi
+
+  # Does the s3 bucket exist?
+  if aws-vault exec home -- aws s3api head-bucket --bucket ${BUCKET_NAME} ; then
+    echo "s3 Bucket: ${BUCKET_NAME} exists"
+
+  else
+
+    # Create s3 bucket
+    echo "Creating s3 bucket: ${BUCKET_NAME}"
+
+    aws-vault exec home -- aws s3api create-bucket \
+     --bucket ${BUCKET_NAME} \
+     --region ${AWS_DEFAULT_REGION} \
+     --create-bucket-configuration \
+     LocationConstraint=${AWS_DEFAULT_REGION}
+
+    # Set versioning
+    aws-vault exec home -- aws s3api put-bucket-versioning \
+      --bucket ${BUCKET_NAME} \
+      --region ${AWS_DEFAULT_REGION} \
+      --versioning-configuration \
+      Status=Enabled
+
+    # Test to show creation successful
+
+    if [ "$DEBUG" -eq "1" ]; then
+      aws-vault exec home -- aws s3 ls | grep ${BUCKET_NAME}
+    fi
+  fi
+
+
+# Create cluster
+
+echo "Creating cluster: ${KOPS_CLUSTER_NAME}"
+
+if [ "$DEBUG" -eq "1" ]; then
+  set -x
+fi
+
+kops create cluster \
+  --node-count ${KOPS_NODE_COUNT} \
+  --node-size ${KOPS_NODE_SIZE} \
+  --name ${KOPS_CLUSTER_NAME} \
+  --zones ${KOPS_AWS_S3_REGION} \
+  --state ${KOPS_STATE_STORE} \
+  --cloud aws
+
+set +x
+
+kops update cluster --yes
+
+kops validate cluster
+
+# End of cluster build
+
+
+# Deploy web dashboard (Ref: 
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+
+
+# Build from yaml file
+
+#
+#
+#
+# usage build-all -n "david pye" -r eu-west-a -p [project_name]
+#usage ()
+#{
+#  echo "usage: build-all [[-n "firstname surname | project name"] [-r AWSregion] [-h]]"
+#}
+
+
+while [ "$1" != "" ]; do
+  case $1 in
+    -n | --name )         shift
+                          name=$1
+echo "name=$name"
+                          ;;
+    -r | --region )       shift
+                          region=$1
+echo "region=$region"
+                          ;;
+    -h | --help )         usage
+                          exit
+                          ;;
+    * )                   usage
+                          exit 1
+  esac
+  shift
+done
+
