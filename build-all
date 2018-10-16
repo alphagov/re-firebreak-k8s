@@ -17,6 +17,10 @@ DEBUG=0
 # Is kubectl installed (/usr/local/bin/kubectl)
   # if not installed, then brew install kubernetes-cli
 
+# Is Helm installed (/usr/local/bin/helm)
+  # if not installed, then brew install kubernetes-helm
+  # will install server-side component to cluster using cmd: helm init
+
 # Get person/project name, get region, maybe case stmt near end
 # e.g. david.pye, eu-west-1, 
 
@@ -73,12 +77,12 @@ DEBUG=0
 
   # Does the s3 bucket exist?
   if aws-vault exec home -- aws s3api head-bucket --bucket ${BUCKET_NAME} ; then
-    echo "s3 Bucket: ${BUCKET_NAME} exists"
+    echo "OUT:s3 Bucket: ${BUCKET_NAME} exists"
 
   else
 
     # Create s3 bucket
-    echo "Creating s3 bucket: ${BUCKET_NAME}"
+    echo "OUT:creating s3 bucket: ${BUCKET_NAME}"
 
     aws-vault exec home -- aws s3api create-bucket \
      --bucket ${BUCKET_NAME} \
@@ -103,7 +107,7 @@ DEBUG=0
 
 # Create cluster
 
-echo "Creating cluster: ${KOPS_CLUSTER_NAME}"
+echo "OUT:Creating cluster definition: ${KOPS_CLUSTER_NAME}"
 
 if [ "$DEBUG" -eq "1" ]; then
   set -x
@@ -117,18 +121,51 @@ kops create cluster \
   --state ${KOPS_STATE_STORE} \
   --cloud aws
 
-set +x
+echo "OUT:create cluster in AWS"
 
 kops update cluster --yes
 
-kops validate cluster
+echo "OUT:waiting for cluster build to complete, then running validate"
+
+until kops validate cluster
+do
+  echo " "
+  sleep 5
+done
+
 
 # End of cluster build
 
 
 # Deploy web dashboard (Ref: 
 
+echo "OUT:deploy kubernetes dashboard to cluster"
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+
+
+# Get secret from cluster, run proxy and fire up browser for Dashboard login
+
+echo "OUT:get admin secret"
+KOPS_SECRET_KUBE=`kops get secrets admin --type secret -oplaintext`
+kubectl proxy &
+
+echo "Choose 'token' then copy and paste this string ${KOPS_SECRET_KUBE} into the browser"
+
+/usr/bin/open -a "/Applications/Google Chrome.app" 'http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login'
+
+
+# Export configuration to YAML file
+
+echo "OUT:creating cluster description yaml file"
+kops get -o yaml > "./${KOPS_CLUSTER_NAME}.yaml"
+
+# Initialise Helm
+
+echo "OUT:initialising helm"
+helm init
+
+
+# End of main section of script
 
 
 # Build from yaml file
