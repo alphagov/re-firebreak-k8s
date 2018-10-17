@@ -40,20 +40,16 @@ Requirements are:
 
 2. [kops](https://github.com/kubernetes/kops) to deploy the k8s cluster on AWS infrastructure.
 
-  Example to install `kops` on mac os using `brew`:
-  ```
-  brew install kops
-  ```
+    Example to install `kops` on mac os using `brew`:
+    ```
+    brew install kops
+    ```
 
 # Project Details
 
 ## Stage 1
 
-Build a K8s cluster
-
-Ref:
-
-1. [using kops to k8s on k8s](https://medium.com/containermind/how-to-create-a-kubernetes-cluster-on-aws-in-few-minutes-89dda10354f4)
+Build a K8s cluster by following the steps [here](kops_deploy_k8s_cluster.md)
 
 ## Stage 2
 
@@ -62,7 +58,6 @@ Build & Deploy a hello world app to the ‘thing’
 ## Stage 3
 
 Deploy a CI/CD tool to the k8s cluster by using the instructions [here](gocd_deploy_errata.md)
-
 
 # References
 [1] https://medium.com/containermind/how-to-create-a-kubernetes-cluster-on-aws-in-few-minutes-89dda10354f4
