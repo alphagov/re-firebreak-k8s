@@ -1,0 +1,210 @@
+#!/bin/sh
+
+# Refs
+# https://medium.com/containermind/how-to-create-a-kubernetes-cluster-on-aws-in-few-minutes-89dda10354f4
+
+
+# Script particular parameters like debug
+DEBUG=0
+
+if [ "$DEBUG" -eq "1" ]; then
+  set -x
+else
+  set +x
+fi
+
+
+# Command line params
+# Use: build_all -n [first.surname.version] -a [aws_access_key] -s [aws_secret]
+
+# if [ "$1" = "" ]; then
+#   echo Usage: build_all -n [first.surname.version] -a [aws_access_key] -s [aws_secret]"
+#   exit 1
+# fi
+
+
+while [ "$1" != "" ]; do
+  case $1 in
+    -n | --name )         shift
+                          NAME=$1
+                          ;;
+    -a | --aws_key )      shift
+                          AWS_ACCESS_KEY_ID=$1
+                          ;;
+    -s | --aws_secret )   shift
+                          AWS_SECRET_ACCESS_KEY=$1
+                          ;;
+  esac
+  shift
+export NAME AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+done
+
+
+# Is /usr/local/bin/aws-vault installed (and configured)?
+  # if not installed, then brew cask install aws-vault, inform user to add credentials, stop here
+
+# Is kops installed (/usr/local/bin/kops)
+  # if not installed, then brew install kops
+
+# Is kubectl installed (/usr/local/bin/kubectl)
+  # if not installed, then brew install kubernetes-cli
+
+# Is Helm installed (/usr/local/bin/helm)
+  # if not installed, then brew install kubernetes-helm
+  # will install server-side component to cluster using cmd: helm init
+
+# Get person/project name, get region, maybe case stmt near end
+# e.g. david.pye, eu-west-1, 
+
+# build Cluster name (name.surname.k8s.local)
+# build s3 name (first-surname-kops-state-store)
+# Does bucket exist? If not, create bucket
+
+
+# Set params (AWS & KOPS)
+
+  # AWS
+  export AWS_DEFAULT_REGION="eu-west-1"
+
+  # S3 bucket name
+  export BUCKET_NAME="${NAME//./-}-kops-state-store"
+
+  # KOPS
+  export KOPS_CLUSTER_NAME="${NAME}.k8s.local"
+  export KOPS_STATE_STORE=s3://${BUCKET_NAME}
+  export KOPS_NODE_COUNT=2
+  export KOPS_NODE_SIZE=t2.medium
+  export KOPS_AWS_S3_REGION="eu-west-1a"
+  
+  # Debug - print vars
+
+  if [ "$DEBUG" -eq "1" ]; then
+    echo "AWS_DEFAULT_REGION = ${AWS_DEFAULT_REGION}"
+    echo "AWS_ACCESS_KEY_ID = ${AWS_ACCESS_KEY_ID}"
+    echo "AWS_SECRET_ACCESS_KEY = ${AWS_SECRET_ACCESS_KEY}"
+    echo "BUCKET_NAME = ${BUCKET_NAME}"
+    echo "KOPS_AWS_S3_REGION = ${KOPS_AWS_S3_REGION}"
+    echo "KOPS_CLUSTER_NAME = ${KOPS_CLUSTER_NAME}"
+    echo "KOPS_STATE_STORE = ${KOPS_STATE_STORE}"
+    echo "KOPS_NODE_COUNT = ${KOPS_NODE_COUNT}"
+    echo "KOPS_NODE_SIZE = ${KOPS_NODE_SIZE}"
+  fi
+
+
+# Is this first time build, or are we building from yaml file?
+
+
+# 1st time build
+
+
+# AWS s3 bucket
+
+  # Does the s3 bucket exist?
+  if aws-vault exec home -- aws s3api head-bucket --bucket ${BUCKET_NAME} ; then
+    echo "OUT:s3 Bucket: ${BUCKET_NAME} exists"
+
+  else
+
+    # Create s3 bucket
+    echo "OUT:creating s3 bucket: ${BUCKET_NAME}"
+
+    aws-vault exec home -- aws s3api create-bucket \
+     --bucket ${BUCKET_NAME} \
+     --region ${AWS_DEFAULT_REGION} \
+     --create-bucket-configuration \
+     LocationConstraint=${AWS_DEFAULT_REGION}
+
+    # Set versioning
+    aws-vault exec home -- aws s3api put-bucket-versioning \
+      --bucket ${BUCKET_NAME} \
+      --region ${AWS_DEFAULT_REGION} \
+      --versioning-configuration \
+      Status=Enabled
+
+    # Test to show creation successful
+
+    if [ "$DEBUG" -eq "1" ]; then
+      aws-vault exec home -- aws s3 ls | grep ${BUCKET_NAME}
+    fi
+  fi
+
+
+# Create cluster
+
+echo "OUT:Creating cluster definition: ${KOPS_CLUSTER_NAME}"
+
+# Debug - print vars
+if [ "$DEBUG" -eq "1" ]; then
+ echo "AWS_DEFAULT_REGION = ${AWS_DEFAULT_REGION}"
+ echo "AWS_ACCESS_KEY_ID = ${AWS_ACCESS_KEY_ID}"
+ echo "AWS_SECRET_ACCESS_KEY = ${AWS_SECRET_ACCESS_KEY}"
+ echo "BUCKET_NAME = ${BUCKET_NAME}"
+ echo "KOPS_AWS_S3_REGION = ${KOPS_AWS_S3_REGION}"
+ echo "KOPS_CLUSTER_NAME = ${KOPS_CLUSTER_NAME}"
+ echo "KOPS_STATE_STORE = ${KOPS_STATE_STORE}"
+ echo "KOPS_NODE_COUNT = ${KOPS_NODE_COUNT}"
+ echo "KOPS_NODE_SIZE = ${KOPS_NODE_SIZE}"
+fi
+
+
+kops create cluster \
+  --node-count ${KOPS_NODE_COUNT} \
+  --node-size ${KOPS_NODE_SIZE} \
+  --name ${KOPS_CLUSTER_NAME} \
+  --zones ${KOPS_AWS_S3_REGION} \
+  --state ${KOPS_STATE_STORE} \
+  --cloud aws
+
+echo "OUT:create cluster in AWS"
+
+kops update cluster --yes
+
+echo "OUT:waiting for cluster build to complete, then running validate"
+
+until kops validate cluster
+do
+  echo "Waiting for build to complete"
+  sleep 10
+done
+
+
+# End of cluster build
+
+
+# Deploy web dashboard (Ref: 
+
+echo "OUT:deploy kubernetes dashboard to cluster"
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+
+
+# Get secret from cluster, run proxy and fire up browser for Dashboard login
+
+echo "OUT:get admin secret"
+KOPS_SECRET_KUBE=`kops get secrets admin --type secret -oplaintext`
+kubectl proxy &
+
+echo "Choose 'token' then copy and paste this string ${KOPS_SECRET_KUBE} into the browser"
+
+/usr/bin/open -a "/Applications/Google Chrome.app" 'http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login'
+
+
+# Export configuration to YAML file
+
+echo "OUT:creating cluster description yaml file"
+kops get -o yaml > "./${KOPS_CLUSTER_NAME}.yaml"
+
+# Initialise Helm
+
+echo "OUT:initialising helm"
+helm init
+
+
+# End of main section of script
+
+
+# Build from yaml file
+
+#
+#
+#
+
