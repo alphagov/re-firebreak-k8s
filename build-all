@@ -159,40 +159,39 @@ echo "OUT:create cluster in AWS"
 
 kops update cluster --yes
 
-echo "OUT:waiting for cluster build to complete, then running validate"
+# echo "OUT:waiting for cluster build to complete, then running validate"
 
-until kops validate cluster
-do
-  echo "Waiting for build to complete"
-  sleep 10
-done
+ until kops validate cluster
+ do
+   sleep 30
+ done
 
 
-# End of cluster build
+# End of cluster base build
+
+
+# Export configuration to YAML file cos we need to add cluster admin role
+
+echo "OUT:creating cluster description yaml file"
+kops get -o yaml > "./${KOPS_CLUSTER_NAME}.yaml"
+
+
+# Deploy GoCD
+# Ref: https://docs.gocd.org/current/gocd_on_kubernetes/gocd_helm_chart/configure_cluster.html
+
+# Create ingress - nginx chosen because it fits :-)
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/kops/master/addons/ingress-nginx/v1.6.0.yaml
+
+kops get -o yaml > "./${KOPS_CLUSTER_NAME}.yaml"
 
 
 # Deploy web dashboard (Ref: 
 
 echo "OUT:deploy kubernetes dashboard to cluster"
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
-
-
-# Get secret from cluster, run proxy and fire up browser for Dashboard login
-
-echo "OUT:get admin secret"
-KOPS_SECRET_KUBE=`kops get secrets admin --type secret -oplaintext`
-kubectl proxy &
-sleep 3
-
-echo "Choose 'token' then copy and paste this string ${KOPS_SECRET_KUBE} into the browser"
-
-/usr/bin/open -a "/Applications/Google Chrome.app" 'http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login'
-
-
-# Export configuration to YAML file
-
-echo "OUT:creating cluster description yaml file"
 kops get -o yaml > "./${KOPS_CLUSTER_NAME}.yaml"
+
 
 # Initialise Helm
 
@@ -200,12 +199,19 @@ echo "OUT:initialising helm"
 helm init
 
 
-# End of main section of script
+# Get secret from cluster, run proxy and fire up browser for Dashboard login
 
+echo "OUT:get admin secret"
+KOPS_SECRET_KUBE=`kops get secrets admin --type secret -oplaintext`
+echo "Choose 'token' then copy and paste this string ${KOPS_SECRET_KUBE} into the browser"
+pkill kubectl ; sleep 1
+kubectl proxy &
+sleep 5
 
-# Build from yaml file
+/usr/bin/open -a "/Applications/Google Chrome.app" 'http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login'
 
-#
-#
-#
+# Update configuration in YAML file
 
+kops get -o yaml > "./${KOPS_CLUSTER_NAME}.yaml"
+
+exit
